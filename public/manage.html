@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Siirrä tai hallinnoi varausta | Fiksiribu</title>
+		<style>
+			:root {
+				--bg: #09090d;
+				--card: #ffffff;
+				--text: #17131c;
+				--muted: #665d72;
+				--accent: #e10087;
+				--danger: #b03b48;
+				--danger-soft: #fdecef;
+				--success: #10735f;
+				--success-soft: #e4f7f1;
+				font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background:
+					radial-gradient(circle at top left, rgba(225, 0, 135, 0.18), transparent 28%),
+					linear-gradient(180deg, #0b0b10 0%, var(--bg) 100%);
+				color: #fff;
+			}
+
+			.page {
+				width: min(100%, 760px);
+				margin: 0 auto;
+				padding: 32px 16px 48px;
+			}
+
+			.hero {
+				padding: 12px 0 24px;
+			}
+
+			.hero h1 {
+				margin: 0 0 8px;
+				font-size: clamp(2rem, 6vw, 3.5rem);
+				line-height: 0.95;
+				letter-spacing: -0.05em;
+			}
+
+			.hero p {
+				margin: 0;
+				color: #d8ced8;
+				line-height: 1.7;
+			}
+
+			.card {
+				background: var(--card);
+				color: var(--text);
+				border-radius: 28px;
+				padding: 24px;
+				box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+			}
+
+			.status {
+				display: inline-flex;
+				padding: 8px 12px;
+				border-radius: 999px;
+				font-size: 0.85rem;
+				font-weight: 700;
+				margin-bottom: 18px;
+			}
+
+			.status.confirmed {
+				background: #ffe4f3;
+				color: var(--accent);
+			}
+
+			.status.cancelled {
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.details {
+				display: grid;
+				gap: 10px;
+				margin: 0 0 22px;
+				color: var(--muted);
+			}
+
+			.details strong {
+				color: var(--text);
+			}
+
+			.message {
+				display: none;
+				margin: 0 0 16px;
+				padding: 14px 16px;
+				border-radius: 16px;
+				line-height: 1.55;
+			}
+
+			.message.visible {
+				display: block;
+			}
+
+			.message.info {
+				background: #f6f4f8;
+				color: var(--muted);
+			}
+
+			.message.success {
+				background: var(--success-soft);
+				color: var(--success);
+			}
+
+			.message.error {
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12px;
+			}
+
+			.button,
+			.link-button {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				padding: 14px 20px;
+				border-radius: 999px;
+				text-decoration: none;
+				font: inherit;
+				font-weight: 700;
+				border: 0;
+				cursor: pointer;
+			}
+
+			.button {
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.button.secondary {
+				background: #f6f4f8;
+				color: var(--muted);
+			}
+
+			.button:disabled {
+				opacity: 0.55;
+				cursor: not-allowed;
+			}
+
+			.link-button {
+				background: linear-gradient(135deg, var(--accent) 0%, #ff3ca7 100%);
+				color: #fff;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page">
+			<header class="hero">
+				<h1>Siirrä tai hallinnoi varausta</h1>
+				<p>Tällä sivulla voit tarkistaa varauksesi tiedot, siirtää aikaa tai tarvittaessa perua varauksen.</p>
+			</header>
+
+			<section class="card">
+				<div class="message info visible" id="message">Ladataan varausta...</div>
+				<div id="content" hidden>
+					<div class="status" id="status-badge"></div>
+					<div class="details" id="details"></div>
+					<div class="actions">
+						<a class="link-button" href="/" id="new-booking-link">Siirrä aikaa</a>
+						<button class="button secondary" id="cancel-button" type="button">Peru varaus</button>
+					</div>
+				</div>
+			</section>
+		</div>
+
+		<script>
+			const token = new URL(window.location.href).searchParams.get("token") || "";
+			const message = document.getElementById("message");
+			const content = document.getElementById("content");
+			const details = document.getElementById("details");
+			const statusBadge = document.getElementById("status-badge");
+			const cancelButton = document.getElementById("cancel-button");
+			const newBookingLink = document.getElementById("new-booking-link");
+
+			let booking = null;
+
+			init();
+
+			async function init() {
+				if (!token) {
+					setMessage("Virheellinen hallintalinkki.", "error");
+					return;
+				}
+
+				try {
+					const response = await fetch(`/api/manage?token=${encodeURIComponent(token)}`);
+					const data = await response.json().catch(() => null);
+
+					if (!response.ok) {
+						setMessage(data?.error || "Varausta ei löytynyt.", "error");
+						return;
+					}
+
+					booking = data;
+					renderBooking();
+				} catch {
+					setMessage("Varauksen lataus epäonnistui.", "error");
+				}
+			}
+
+			cancelButton.addEventListener("click", async () => {
+				if (!booking || booking.status === "cancelled") {
+					return;
+				}
+
+				cancelButton.disabled = true;
+				setMessage("Perutaan varausta...", "info");
+
+				try {
+					const response = await fetch("/api/manage/cancel", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ token })
+					});
+					const data = await response.json().catch(() => null);
+
+					if (!response.ok) {
+						setMessage(data?.error || "Varauksen peruminen epäonnistui.", "error");
+						cancelButton.disabled = false;
+						return;
+					}
+
+					booking.status = "cancelled";
+					renderBooking();
+					setMessage("Varaus on peruttu.", "success");
+				} catch {
+					setMessage("Varauksen peruminen epäonnistui.", "error");
+					cancelButton.disabled = false;
+				}
+			});
+
+			function renderBooking() {
+				content.hidden = false;
+				statusBadge.textContent = booking.status === "cancelled" ? "Peruttu" : "Vahvistettu";
+				statusBadge.className = `status ${booking.status}`;
+				newBookingLink.href = `/?reschedule=1&token=${encodeURIComponent(token)}&serviceId=${encodeURIComponent(
+					booking.serviceId
+				)}`;
+				details.innerHTML = `
+					<div><strong>Päivä:</strong> ${booking.date}</div>
+					<div><strong>Aika:</strong> ${booking.time}</div>
+					<div><strong>Palvelu:</strong> ${booking.durationMinutes} min</div>
+					<div><strong>Nimi:</strong> ${booking.name}</div>
+					<div><strong>Sähköposti:</strong> ${booking.email}</div>
+					<div><strong>Osoite:</strong> ${booking.address}</div>
+					${booking.notes ? `<div><strong>Lisätiedot:</strong> ${booking.notes}</div>` : ""}
+				`;
+				cancelButton.hidden = booking.status === "cancelled";
+				cancelButton.disabled = false;
+
+				if (booking.status === "cancelled") {
+					setMessage("Tämä varaus on peruttu.", "info");
+					return;
+				}
+
+				setMessage("", "");
+			}
+
+			function setMessage(text, type) {
+				message.textContent = text;
+				message.className = text ? `message ${type} visible` : "message";
+			}
+		</script>
+	</body>
+</html>

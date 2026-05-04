@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="fi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Fiksiribu ajanvaraus</title>
+		<style>
+			:root {
+				--bg: #050505;
+				--bg-soft: #0d0d10;
+				--surface: #17171c;
+				--surface-2: #23232a;
+				--card: var(--surface);
+				--card-muted: var(--surface-2);
+				--text: #f4f4f6;
+				--text-soft: #cfcfd4;
+				--text-muted: #9b9ba3;
+				--muted: var(--text-muted);
+				--border: rgba(255, 255, 255, 0.08);
+				--accent: #e000a8;
+				--accent-hover: #ff38d1;
+				--accent-purple: #b100ff;
+				--accent-dark: var(--accent-purple);
+				--accent-soft: rgba(224, 0, 168, 0.14);
+				--success: #10735f;
+				--success-soft: #e4f7f1;
+				--error: #b03b48;
+				--error-soft: #fdecef;
+				--shadow: 0 18px 45px rgba(224, 0, 168, 0.22);
+				font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			html {
+				background: var(--bg);
+			}
+
+			body {
+				margin: 0;
+				min-height: 100vh;
+				background:
+					radial-gradient(circle at top center, rgba(224, 0, 168, 0.22), transparent 30%),
+					linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 100%);
+				color: var(--text);
+			}
+
+			.page {
+				width: min(100%, 1120px);
+				margin: 0 auto;
+				padding: 32px 18px 48px;
+			}
+
+			.hero {
+				padding: 28px 4px 34px;
+			}
+
+			.brand-tag {
+				display: inline-flex;
+				align-items: center;
+				padding: 8px 14px;
+				border: 1px solid var(--border);
+				border-radius: 999px;
+				background: rgba(255, 255, 255, 0.03);
+				color: var(--text-soft);
+				font-size: 0.82rem;
+				font-weight: 700;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+			}
+
+			.hero h1 {
+				margin: 18px 0 8px;
+			}
+
+			.hero h1 img {
+				display: block;
+				width: clamp(210px, 34vw, 360px);
+				height: auto;
+			}
+
+			.hero h2 {
+				margin: 0;
+				font-size: clamp(1.1rem, 3vw, 1.65rem);
+				font-weight: 700;
+				letter-spacing: -0.01em;
+				color: var(--text-soft);
+			}
+
+			.hero p {
+				margin: 18px 0 0;
+				max-width: 660px;
+				font-size: 1.02rem;
+				line-height: 1.7;
+				color: var(--text-muted);
+			}
+
+			.layout {
+				display: grid;
+				grid-template-columns: 1.1fr 0.9fr;
+				gap: 18px;
+			}
+
+			.card {
+				background: var(--card);
+				color: var(--text);
+				border-radius: 28px;
+				box-shadow: var(--shadow);
+				border: 1px solid var(--border);
+				padding: 26px;
+			}
+
+			.card.hero-card {
+				background: linear-gradient(180deg, rgba(35, 35, 42, 0.98) 0%, rgba(23, 23, 28, 0.98) 100%);
+			}
+
+			.section-eyebrow {
+				margin: 0 0 8px;
+				color: var(--accent);
+				font-size: 0.82rem;
+				font-weight: 800;
+				letter-spacing: 0.12em;
+				text-transform: uppercase;
+			}
+
+			.section-title {
+				margin: 0 0 10px;
+				font-size: 1.45rem;
+				line-height: 1.1;
+			}
+
+			.section-copy {
+				margin: 0;
+				color: var(--text-muted);
+				line-height: 1.65;
+			}
+
+			.fields {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 16px;
+				margin-top: 22px;
+			}
+
+			.field {
+				display: grid;
+				gap: 8px;
+			}
+
+			.field.full {
+				grid-column: 1 / -1;
+			}
+
+			label {
+				font-size: 0.95rem;
+				font-weight: 700;
+				color: var(--text-soft);
+			}
+
+			input,
+			select,
+			textarea,
+			button {
+				font: inherit;
+			}
+
+			input,
+			select,
+			textarea {
+				width: 100%;
+				padding: 14px 16px;
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				background: var(--surface-2);
+				color: var(--text);
+				color-scheme: dark;
+				transition:
+					border-color 0.18s ease,
+					box-shadow 0.18s ease,
+					transform 0.18s ease;
+			}
+
+			input[type="date"] {
+				cursor: pointer;
+			}
+
+			textarea {
+				min-height: 118px;
+				resize: vertical;
+			}
+
+			input:focus,
+			select:focus,
+			textarea:focus,
+			button:focus {
+				outline: none;
+				border-color: var(--accent);
+				box-shadow: 0 0 0 4px rgba(224, 0, 168, 0.16);
+			}
+
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12px;
+				margin-top: 22px;
+			}
+
+			.primary-button,
+			.time-button {
+				border: 0;
+				cursor: pointer;
+				transition:
+					transform 0.16s ease,
+					box-shadow 0.16s ease,
+					background 0.16s ease,
+					border-color 0.16s ease,
+					color 0.16s ease;
+			}
+
+			.primary-button {
+				min-height: 52px;
+				padding: 14px 22px;
+				border-radius: 18px;
+				border: 1px solid rgba(255, 56, 209, 0.2);
+				background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+				color: #fff;
+				font-weight: 700;
+				letter-spacing: 0.01em;
+				box-shadow:
+					0 14px 30px rgba(224, 0, 168, 0.22),
+					inset 0 1px 0 rgba(255, 255, 255, 0.12);
+			}
+
+			.primary-button:hover,
+			.time-button:hover {
+				transform: translateY(-1px);
+			}
+
+			.primary-button:hover {
+				background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent) 100%);
+				border-color: rgba(255, 56, 209, 0.34);
+				box-shadow:
+					0 18px 34px rgba(224, 0, 168, 0.28),
+					0 0 0 1px rgba(255, 56, 209, 0.12),
+					inset 0 1px 0 rgba(255, 255, 255, 0.16);
+			}
+
+			.primary-button:disabled {
+				opacity: 0.58;
+				cursor: not-allowed;
+				box-shadow: none;
+				transform: none;
+			}
+
+			.time-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(98px, 1fr));
+				gap: 10px;
+				margin-top: 18px;
+			}
+
+			.time-button {
+				min-height: 48px;
+				padding: 12px 16px;
+				border-radius: 18px;
+				background: linear-gradient(180deg, rgba(35, 35, 42, 0.96) 0%, rgba(23, 23, 28, 0.96) 100%);
+				border: 1px solid rgba(255, 255, 255, 0.1);
+				color: var(--text-soft);
+				font-weight: 600;
+				box-shadow:
+					inset 0 1px 0 rgba(255, 255, 255, 0.04),
+					0 6px 16px rgba(0, 0, 0, 0.22);
+			}
+
+			.time-button:hover {
+				border-color: rgba(255, 56, 209, 0.22);
+				background: linear-gradient(180deg, rgba(42, 42, 50, 0.98) 0%, rgba(28, 28, 34, 0.98) 100%);
+				box-shadow:
+					inset 0 1px 0 rgba(255, 255, 255, 0.06),
+					0 10px 22px rgba(0, 0, 0, 0.26);
+			}
+
+			.time-button.selected {
+				background: linear-gradient(135deg, rgba(224, 0, 168, 0.2) 0%, rgba(177, 0, 255, 0.22) 100%);
+				border-color: var(--accent);
+				color: var(--text);
+				box-shadow:
+					0 14px 28px rgba(224, 0, 168, 0.16),
+					0 0 0 1px rgba(224, 0, 168, 0.2),
+					inset 0 1px 0 rgba(255, 255, 255, 0.08);
+			}
+
+			.message {
+				display: none;
+				margin-top: 16px;
+				padding: 14px 16px;
+				border-radius: 16px;
+				font-size: 0.95rem;
+				line-height: 1.55;
+			}
+
+			.message.visible {
+				display: block;
+			}
+
+			.message.info {
+				background: var(--card-muted);
+				color: var(--text-soft);
+			}
+
+			.message.success {
+				background: var(--success-soft);
+				color: var(--success);
+			}
+
+			.message.error {
+				background: var(--error-soft);
+				color: var(--error);
+			}
+
+			.success-panel {
+				display: none;
+				margin-top: 18px;
+				padding: 20px;
+				border-radius: 22px;
+				background:
+					linear-gradient(135deg, rgba(16, 115, 95, 0.12) 0%, rgba(35, 35, 42, 0.96) 58%),
+					var(--success-soft);
+				border: 1px solid rgba(16, 115, 95, 0.24);
+				color: var(--text-soft);
+			}
+
+			.success-panel.visible {
+				display: block;
+			}
+
+			.success-panel h3 {
+				margin: 0 0 8px;
+				color: var(--success);
+				font-size: 1.25rem;
+			}
+
+			.success-panel p {
+				margin: 0;
+				color: var(--text-soft);
+				line-height: 1.6;
+			}
+
+			.success-details {
+				display: grid;
+				gap: 8px;
+				margin-top: 16px;
+				padding-top: 16px;
+				border-top: 1px solid rgba(16, 115, 95, 0.16);
+			}
+
+			.success-details div {
+				color: var(--text-soft);
+			}
+
+			.success-details strong {
+				color: var(--text);
+			}
+
+			.selection-card {
+				margin-top: 18px;
+				padding: 16px 18px;
+				border-radius: 18px;
+				background: linear-gradient(180deg, rgba(35, 35, 42, 0.98) 0%, rgba(23, 23, 28, 0.98) 100%);
+				border: 1px solid var(--border);
+			}
+
+			.selection-label {
+				display: block;
+				margin-bottom: 6px;
+				color: var(--text-muted);
+				font-size: 0.88rem;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+			}
+
+			.selection-value {
+				font-size: 1.08rem;
+				font-weight: 700;
+				color: var(--text-soft);
+			}
+
+			.form-note {
+				margin-top: 14px;
+				font-size: 0.9rem;
+				color: var(--text-muted);
+				line-height: 1.6;
+			}
+
+			@media (max-width: 900px) {
+				.layout {
+					grid-template-columns: 1fr;
+				}
+			}
+
+			@media (max-width: 720px) {
+				.page {
+					padding: 20px 14px 32px;
+				}
+
+				.hero {
+					padding: 10px 0 22px;
+				}
+
+				.card {
+					padding: 20px;
+					border-radius: 24px;
+				}
+
+				.fields {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page">
+			<header class="hero">
+				<div class="brand-tag">Ajanvaraus verkossa</div>
+				<h1><img src="/assets/navbar.logo.png" alt="Fiksiribu" /></h1>
+				<h2>Koulutettu hieroja Riikka Kallio</h2>
+				<p>Varaa hieronta-aika verkossa. Valitse palvelu, päivä ja sopiva aika.</p>
+			</header>
+
+			<main class="layout">
+				<section class="card hero-card" aria-labelledby="booking-title">
+					<p class="section-eyebrow">1. Valitse aika</p>
+					<h2 class="section-title" id="booking-title">Hae vapaat hieronta-ajat</h2>
+					<p class="section-copy">
+						Näet vapaat ajat heti valitsemallesi palvelulle. Valitse sen jälkeen sinulle sopiva ajankohta ja
+						viimeistele varaus.
+					</p>
+					<div class="message info" id="reschedule-message"></div>
+
+					<div class="fields">
+						<div class="field">
+							<label for="service">Palvelu</label>
+							<select id="service" name="service">
+								<option value="1">60 min 75 €</option>
+								<option value="2">90 min 99 €</option>
+								<option value="3">120 min 129 €</option>
+							</select>
+						</div>
+
+						<div class="field">
+							<label for="date">Päivä</label>
+							<input id="date" name="date" type="date" />
+						</div>
+					</div>
+
+					<div class="actions">
+						<button class="primary-button" id="load-times-button" type="button">Hae vapaat ajat</button>
+					</div>
+
+					<div class="message info visible" id="availability-message">
+						Valitse palvelu ja päivä nähdäksesi vapaat ajat.
+					</div>
+
+					<div class="time-grid" id="times" aria-live="polite"></div>
+
+					<div class="selection-card" id="selection-summary" hidden>
+						<span class="selection-label">Valittu aika</span>
+						<div class="selection-value" id="selection-text"></div>
+					</div>
+				</section>
+
+				<section class="card" aria-labelledby="details-title">
+					<p class="section-eyebrow">2. Vahvista tiedot</p>
+					<h2 class="section-title" id="details-title">Täytä varaustiedot</h2>
+					<p class="section-copy">
+						Täytä yhteystietosi huolellisesti. Varaus vahvistetaan heti ja saat varausvahvistuksen sähköpostiisi.
+					</p>
+
+					<form id="booking-form">
+						<div class="fields">
+							<div class="field">
+								<label for="name">Nimi</label>
+								<input id="name" name="name" type="text" autocomplete="name" required />
+							</div>
+
+							<div class="field">
+								<label for="email">Sähköposti</label>
+								<input id="email" name="email" type="email" autocomplete="email" required />
+							</div>
+
+							<div class="field full">
+								<label for="address">Osoite</label>
+								<input id="address" name="address" type="text" autocomplete="street-address" required />
+							</div>
+
+							<div class="field full">
+								<label for="notes">Lisätiedot tai toiveet (valinnainen)</label>
+								<textarea
+									id="notes"
+									name="notes"
+									placeholder="Ovikoodi, saapumisohje, toive hoitoa varten..."
+								></textarea>
+							</div>
+						</div>
+
+						<div class="actions">
+							<button class="primary-button" id="book-button" type="submit">Varaa aika</button>
+						</div>
+					</form>
+
+					<div class="message" id="booking-message" aria-live="polite"></div>
+					<div class="success-panel" id="success-panel" aria-live="polite"></div>
+				</section>
+			</main>
+		</div>
+
+		<script>
+			const serviceSelect = document.getElementById("service");
+			const dateInput = document.getElementById("date");
+			const loadTimesButton = document.getElementById("load-times-button");
+			const timesContainer = document.getElementById("times");
+			const availabilityMessage = document.getElementById("availability-message");
+			const bookingForm = document.getElementById("booking-form");
+			const bookingMessage = document.getElementById("booking-message");
+			const bookButton = document.getElementById("book-button");
+			const selectionSummary = document.getElementById("selection-summary");
+			const selectionText = document.getElementById("selection-text");
+			const notesInput = document.getElementById("notes");
+			const rescheduleMessage = document.getElementById("reschedule-message");
+			const successPanel = document.getElementById("success-panel");
+			const pageUrl = new URL(window.location.href);
+
+			const state = {
+				selectedTime: "",
+				availableTimes: [],
+				rescheduleToken: "",
+				rescheduleMode: false
+			};
+
+			setDefaultDate();
+			initRescheduleMode();
+
+			loadTimesButton.addEventListener("click", loadAvailability);
+			bookingForm.addEventListener("submit", submitBooking);
+			dateInput.addEventListener("click", openNativeDatePicker);
+
+			async function loadAvailability() {
+				const serviceId = serviceSelect.value;
+				const date = dateInput.value;
+
+				clearBookingMessage();
+				clearSelection();
+
+				if (!date) {
+					setAvailabilityMessage("Valitse päivä ensin.", "error");
+					return;
+				}
+
+				setAvailabilityMessage("Haetaan vapaita aikoja...", "info");
+				loadTimesButton.disabled = true;
+				timesContainer.innerHTML = "";
+
+				try {
+					const response = await fetch(
+						`/api/availability?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(date)}`
+					);
+
+					if (!response.ok) {
+						throw new Error("Aikojen haku epäonnistui.");
+					}
+
+					const times = await response.json();
+					state.availableTimes = Array.isArray(times) ? times : [];
+					renderTimes();
+				} catch (error) {
+					state.availableTimes = [];
+					timesContainer.innerHTML = "";
+					setAvailabilityMessage(error.message || "Aikojen haku epäonnistui.", "error");
+				} finally {
+					loadTimesButton.disabled = false;
+				}
+			}
+
+			function renderTimes() {
+				timesContainer.innerHTML = "";
+
+				if (state.availableTimes.length === 0) {
+					setAvailabilityMessage("Valitulle päivälle ei ole vapaita aikoja.", "info");
+					return;
+				}
+
+				setAvailabilityMessage("Valitse sinulle sopiva aika.", "info");
+
+				for (const time of state.availableTimes) {
+					const button = document.createElement("button");
+					button.type = "button";
+					button.className = "time-button";
+					button.textContent = time;
+					button.addEventListener("click", () => selectTime(time, button));
+					timesContainer.appendChild(button);
+				}
+			}
+
+			function selectTime(time, button) {
+				state.selectedTime = time;
+
+				for (const element of timesContainer.querySelectorAll(".time-button")) {
+					element.classList.toggle("selected", element === button);
+				}
+
+				selectionText.textContent = `${formatFinnishDate(dateInput.value)} klo ${time}`;
+				selectionSummary.hidden = false;
+				clearBookingMessage();
+			}
+
+			async function submitBooking(event) {
+				event.preventDefault();
+				clearBookingMessage();
+
+				if (!dateInput.value) {
+					setBookingMessage("Valitse päivä ennen varausta.", "error");
+					return;
+				}
+
+				if (!state.selectedTime) {
+					setBookingMessage("Valitse vapaa aika ennen varausta.", "error");
+					return;
+				}
+
+				if (!bookingForm.reportValidity()) {
+					return;
+				}
+
+				const payload = {
+					serviceId: Number(serviceSelect.value),
+					date: dateInput.value,
+					time: state.selectedTime,
+					name: document.getElementById("name").value.trim(),
+					email: document.getElementById("email").value.trim(),
+					address: document.getElementById("address").value.trim(),
+					notes: notesInput.value.trim(),
+					rescheduleToken: state.rescheduleToken || undefined
+				};
+
+				bookButton.disabled = true;
+				setBookingMessage("Tallennetaan varausta...", "info");
+
+				try {
+					const response = await fetch("/api/bookings", {
+						method: "POST",
+						headers: {
+							"content-type": "application/json"
+						},
+						body: JSON.stringify(payload)
+					});
+
+					const data = await response.json().catch(() => null);
+
+					if (response.ok) {
+						const successDetails = {
+							date: dateInput.value,
+							time: state.selectedTime,
+							service: serviceSelect.options[serviceSelect.selectedIndex].textContent.trim()
+						};
+
+						bookingForm.reset();
+						setDefaultDate();
+						clearSelection();
+						clearRescheduleMode();
+						clearBookingMessage();
+						showSuccessPanel(successDetails);
+						await loadAvailability();
+						return;
+					}
+
+					if (response.status === 409) {
+						setBookingMessage("Valittu aika ehti varautua. Hae vapaat ajat uudelleen.", "error");
+						await loadAvailability();
+						return;
+					}
+
+					setBookingMessage(data?.error || "Varaus epäonnistui.", "error");
+				} catch {
+					setBookingMessage("Varaus epäonnistui. Yritä hetken kuluttua uudelleen.", "error");
+				} finally {
+					bookButton.disabled = false;
+				}
+			}
+
+			function clearSelection() {
+				state.selectedTime = "";
+				selectionSummary.hidden = true;
+				selectionText.textContent = "";
+			}
+
+			function setAvailabilityMessage(text, type) {
+				availabilityMessage.textContent = text;
+				availabilityMessage.className = `message ${type} visible`;
+			}
+
+			function setBookingMessage(text, type) {
+				bookingMessage.textContent = text;
+				bookingMessage.className = `message ${type} visible`;
+			}
+
+			function clearBookingMessage() {
+				bookingMessage.textContent = "";
+				bookingMessage.className = "message";
+			}
+
+			function showSuccessPanel(details) {
+				successPanel.innerHTML = `
+					<h3>Aika varattu</h3>
+					<p>Varausvahvistus on lähetetty sähköpostiisi.</p>
+					<p>Voit muuttaa tai siirtää varaustasi sähköpostissa olevan linkin kautta.</p>
+					<div class="success-details">
+						<div><strong>Päivä:</strong> ${formatFinnishDate(details.date)}</div>
+						<div><strong>Aika:</strong> ${details.time}</div>
+						<div><strong>Palvelu:</strong> ${details.service}</div>
+					</div>
+				`;
+				successPanel.className = "success-panel visible";
+			}
+
+			function setDefaultDate() {
+				const todayInHelsinki = getCurrentHelsinkiDate();
+				dateInput.min = todayInHelsinki;
+
+				if (!dateInput.value || dateInput.value < todayInHelsinki) {
+					dateInput.value = todayInHelsinki;
+				}
+			}
+
+			function initRescheduleMode() {
+				const reschedule = pageUrl.searchParams.get("reschedule");
+				const token = pageUrl.searchParams.get("token");
+				const serviceId = pageUrl.searchParams.get("serviceId");
+
+				if (reschedule !== "1" || !token) {
+					return;
+				}
+
+				state.rescheduleMode = true;
+				state.rescheduleToken = token;
+
+				if (serviceId && serviceSelect.querySelector(`option[value="${serviceId}"]`)) {
+					serviceSelect.value = serviceId;
+				}
+
+				rescheduleMessage.textContent =
+					"Valitse uusi aika varauksellesi. Vanha aika perutaan vasta kun uusi varaus on onnistunut.";
+				rescheduleMessage.className = "message info visible";
+				void prefillRescheduleDetails(token);
+			}
+
+			function clearRescheduleMode() {
+				state.rescheduleMode = false;
+				state.rescheduleToken = "";
+				pageUrl.searchParams.delete("reschedule");
+				pageUrl.searchParams.delete("token");
+				pageUrl.searchParams.delete("serviceId");
+				window.history.replaceState({}, "", pageUrl.pathname + pageUrl.search);
+				rescheduleMessage.textContent = "";
+				rescheduleMessage.className = "message";
+			}
+
+			async function prefillRescheduleDetails(token) {
+				try {
+					const response = await fetch(`/api/manage?token=${encodeURIComponent(token)}`);
+					const booking = await response.json().catch(() => null);
+
+					if (!response.ok || !booking) {
+						return;
+					}
+
+					document.getElementById("name").value = booking.name ?? "";
+					document.getElementById("email").value = booking.email ?? "";
+					document.getElementById("address").value = booking.address ?? "";
+					notesInput.value = booking.notes ?? "";
+				} catch {
+					rescheduleMessage.textContent =
+						"Valitse uusi aika varauksellesi. Vanha aika perutaan vasta kun uusi varaus on onnistunut.";
+					rescheduleMessage.className = "message info visible";
+				}
+			}
+
+			function openNativeDatePicker() {
+				if (typeof dateInput.showPicker === "function") {
+					dateInput.showPicker();
+				}
+			}
+
+			function getCurrentHelsinkiDate() {
+				const formatter = new Intl.DateTimeFormat("en-CA", {
+					timeZone: "Europe/Helsinki",
+					year: "numeric",
+					month: "2-digit",
+					day: "2-digit"
+				});
+				const parts = formatter.formatToParts(new Date());
+				const values = {};
+
+				for (const part of parts) {
+					if (part.type !== "literal") {
+						values[part.type] = part.value;
+					}
+				}
+
+				return `${values.year}-${values.month}-${values.day}`;
+			}
+
+			function formatFinnishDate(value) {
+				if (!value) {
+					return "";
+				}
+
+				const [year, month, day] = value.split("-");
+				return `${day}.${month}.${year}`;
+			}
+		</script>
+	</body>
+</html>

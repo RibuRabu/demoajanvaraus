@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="fi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Fiksiribu admin</title>
+		<style>
+			:root {
+				--bg: #f4f1eb;
+				--panel: #ffffff;
+				--text: #1e1b17;
+				--muted: #70655a;
+				--border: #ddd1c2;
+				--accent: #215e52;
+				--accent-soft: #e7f2ef;
+				--danger: #9f3a30;
+				--danger-soft: #f8eae8;
+				font-family: "Segoe UI", sans-serif;
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+
+			body {
+				margin: 0;
+				background: linear-gradient(180deg, #f8f5ef 0%, var(--bg) 100%);
+				color: var(--text);
+			}
+
+			.page {
+				max-width: 1100px;
+				margin: 0 auto;
+				padding: 24px 16px 40px;
+			}
+
+			.hidden {
+				display: none;
+			}
+
+			h1,
+			h2 {
+				margin: 0 0 14px;
+			}
+
+			.layout {
+				display: grid;
+				gap: 18px;
+			}
+
+			.card {
+				background: var(--panel);
+				border: 1px solid var(--border);
+				border-radius: 20px;
+				padding: 18px;
+			}
+
+			.login-card {
+				max-width: 440px;
+				margin: 12vh auto 0;
+				box-shadow: 0 18px 50px rgba(30, 27, 23, 0.08);
+			}
+
+			.grid {
+				display: grid;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				gap: 14px;
+			}
+
+			.field {
+				display: grid;
+				gap: 6px;
+			}
+
+			.field.full {
+				grid-column: 1 / -1;
+			}
+
+			label {
+				font-size: 0.95rem;
+				font-weight: 600;
+			}
+
+			input,
+			select,
+			button {
+				font: inherit;
+			}
+
+			input,
+			select,
+			textarea {
+				width: 100%;
+				padding: 12px 14px;
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				background: #fff;
+			}
+
+			textarea {
+				min-height: 96px;
+				resize: vertical;
+			}
+
+			button {
+				border: 0;
+				border-radius: 999px;
+				padding: 12px 16px;
+				cursor: pointer;
+			}
+
+			.primary {
+				background: var(--accent);
+				color: #fff;
+			}
+
+			.danger {
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.message {
+				display: none;
+				margin-top: 12px;
+				padding: 12px 14px;
+				border-radius: 12px;
+			}
+
+			.message.visible {
+				display: block;
+			}
+
+			.message.success {
+				background: var(--accent-soft);
+				color: var(--accent);
+			}
+
+			.message.error {
+				background: var(--danger-soft);
+				color: var(--danger);
+			}
+
+			.message.info {
+				background: #f3efe8;
+				color: var(--muted);
+			}
+
+			.booking-list {
+				display: grid;
+				gap: 12px;
+			}
+
+			.exception-list {
+				display: grid;
+				gap: 12px;
+			}
+
+			.booking-day {
+				display: grid;
+				gap: 12px;
+			}
+
+			.booking-day-title {
+				margin: 2px 0 0;
+				padding-bottom: 8px;
+				border-bottom: 1px solid #eee6da;
+				font-size: 1rem;
+				font-weight: 700;
+			}
+
+			.booking-item {
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				padding: 14px;
+				background: #fcfbf8;
+			}
+
+			.booking-head {
+				display: flex;
+				justify-content: space-between;
+				gap: 12px;
+				flex-wrap: wrap;
+				margin-bottom: 10px;
+			}
+
+			.booking-meta {
+				display: grid;
+				gap: 4px;
+				color: var(--muted);
+			}
+
+			.booking-meta strong {
+				color: var(--text);
+			}
+
+			.hours-table {
+				display: grid;
+				gap: 10px;
+			}
+
+			.hours-row {
+				display: grid;
+				grid-template-columns: 1.2fr auto 1fr 1fr;
+				gap: 10px;
+				align-items: center;
+				padding: 10px 0;
+				border-bottom: 1px solid #eee6da;
+			}
+
+			.hours-row:last-child {
+				border-bottom: 0;
+			}
+
+			.inline-toggle {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				margin-top: 14px;
+			}
+
+			.admin-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: flex-start;
+				gap: 14px;
+				flex-wrap: wrap;
+			}
+
+			.login-helper {
+				margin: 0 0 16px;
+				color: var(--muted);
+				line-height: 1.5;
+			}
+
+			@media (max-width: 760px) {
+				.grid {
+					grid-template-columns: 1fr;
+				}
+
+				.hours-row {
+					grid-template-columns: 1fr;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page">
+			<div class="layout" id="login-view">
+				<section class="card login-card">
+					<h1>Admin kirjautuminen</h1>
+					<p class="login-helper">Syötä admin-avain avataksesi hallintapaneelin.</p>
+					<form id="login-form">
+						<div class="field">
+							<label for="admin-key">Admin-avain</label>
+							<input id="admin-key" name="adminKey" type="password" placeholder="Admin-avain" required />
+						</div>
+						<div class="actions">
+							<button class="primary" type="submit">Avaa hallinta</button>
+						</div>
+					</form>
+					<div class="message" id="login-message"></div>
+				</section>
+			</div>
+
+			<div class="layout hidden" id="admin-view">
+				<section class="card">
+					<div class="admin-header">
+						<div>
+							<h1>Admin</h1>
+							<div class="message info visible" id="page-message">Ladataan tietoja...</div>
+						</div>
+						<button class="danger" id="logout-button" type="button">Kirjaudu ulos</button>
+					</div>
+				</section>
+
+				<section class="card">
+					<h2>Tulevat varaukset</h2>
+					<div class="booking-list" id="booking-list"></div>
+				</section>
+
+				<section class="card">
+					<h2>Historia</h2>
+					<div class="booking-list" id="history-list"></div>
+				</section>
+
+				<section class="card">
+					<h2>Käsittelemättömät menneet varaukset</h2>
+					<div class="booking-list" id="audit-list"></div>
+				</section>
+
+				<section class="card">
+					<h2>Kuukausiraportti</h2>
+					<form id="report-form">
+						<div class="grid">
+							<div class="field">
+								<label for="report-month">Kuukausi</label>
+								<input id="report-month" name="reportMonth" type="month" required />
+							</div>
+						</div>
+						<div class="actions">
+							<button class="primary" type="submit">Näytä raportti</button>
+							<button class="primary" id="report-pdf-button" type="button">Lataa PDF</button>
+						</div>
+					</form>
+					<div class="message" id="report-message"></div>
+					<div class="booking-list" id="report-results"></div>
+				</section>
+
+				<section class="card">
+					<h2>Lisää varaus manuaalisesti</h2>
+					<form id="manual-booking-form">
+						<div class="grid">
+							<div class="field">
+								<label for="serviceId">Palvelu</label>
+								<select id="serviceId" name="serviceId">
+									<option value="1">60 min 75 €</option>
+									<option value="2">90 min 99 €</option>
+									<option value="3">120 min 129 €</option>
+								</select>
+							</div>
+							<div class="field">
+								<label for="date">Päivä</label>
+								<input id="date" name="date" type="date" required />
+							</div>
+							<div class="field">
+								<label for="time">Aika</label>
+								<input id="time" name="time" type="time" required />
+							</div>
+							<div class="field">
+								<label for="name">Nimi</label>
+								<input id="name" name="name" type="text" required />
+							</div>
+							<div class="field">
+								<label for="email">Sähköposti</label>
+								<input id="email" name="email" type="email" required />
+							</div>
+							<div class="field full">
+								<label for="address">Osoite</label>
+								<input id="address" name="address" type="text" required />
+							</div>
+							<div class="field full">
+								<label for="notes">Lisätiedot tai toiveet (valinnainen)</label>
+								<textarea
+									id="notes"
+									name="notes"
+									placeholder="Ovikoodi, saapumisohje, toive hoitoa varten..."
+								></textarea>
+							</div>
+						</div>
+						<div class="actions">
+							<button class="primary" type="submit">Tallenna varaus</button>
+						</div>
+					</form>
+					<div class="message" id="manual-message"></div>
+				</section>
+
+				<section class="card">
+					<h2>Viikkotyöajat</h2>
+					<form id="hours-form">
+						<div class="hours-table" id="hours-table"></div>
+						<div class="actions">
+							<button class="primary" type="submit">Tallenna työajat</button>
+						</div>
+					</form>
+					<div class="message" id="hours-message"></div>
+				</section>
+
+				<section class="card">
+					<h2>Varausasetukset</h2>
+					<form id="settings-form">
+						<div class="grid">
+							<div class="field">
+								<label for="same-day-notice-minutes">Valmistautumisaika ennen varausta</label>
+								<input
+									id="same-day-notice-minutes"
+									name="sameDayNoticeMinutes"
+									type="number"
+									min="0"
+									max="1440"
+									required
+								/>
+							</div>
+							<div class="field">
+								<label for="buffer-minutes">Varausten v&auml;linen bufferi</label>
+								<input id="buffer-minutes" name="bufferMinutes" type="number" min="0" max="480" required />
+							</div>
+							<div class="field">
+								<label for="slot-interval-minutes">Aikav&auml;lin pituus</label>
+								<select id="slot-interval-minutes" name="slotIntervalMinutes">
+									<option value="5">5</option>
+									<option value="10">10</option>
+									<option value="15">15</option>
+									<option value="20">20</option>
+									<option value="30">30</option>
+									<option value="45">45</option>
+									<option value="60">60</option>
+								</select>
+							</div>
+						</div>
+						<div class="actions">
+							<button class="primary" type="submit">Tallenna asetukset</button>
+						</div>
+					</form>
+					<div class="message" id="settings-message"></div>
+				</section>
+
+				<section class="card">
+					<h2>Poikkeukset ja estot</h2>
+					<form id="exceptions-form">
+						<div class="grid">
+							<div class="field">
+								<label for="exception-date">Päivä</label>
+								<input id="exception-date" name="exceptionDate" type="date" required />
+							</div>
+							<div class="field">
+								<label for="exception-type">Tyyppi</label>
+								<select id="exception-type" name="exceptionType">
+									<option value="closed_all_day">Suljettu koko päivä</option>
+									<option value="blocked_range">Estetty aikaväli</option>
+								</select>
+							</div>
+							<div class="field">
+								<label for="exception-start">Alkaa</label>
+								<input id="exception-start" name="exceptionStart" type="time" />
+							</div>
+							<div class="field">
+								<label for="exception-end">Päättyy</label>
+								<input id="exception-end" name="exceptionEnd" type="time" />
+							</div>
+						</div>
+						<div class="actions">
+							<button class="primary" type="submit">Lisää poikkeus</button>
+						</div>
+					</form>
+					<div class="message" id="exceptions-message"></div>
+					<div class="exception-list" id="exceptions-list"></div>
+				</section>
+			</div>
+		</div>
+
+		<script>
+			const adminKeyStorageKey = "adminKey";
+			let adminKey = localStorage.getItem(adminKeyStorageKey) || "";
+			const loginView = document.getElementById("login-view");
+			const adminView = document.getElementById("admin-view");
+			const loginForm = document.getElementById("login-form");
+			const loginMessage = document.getElementById("login-message");
+			const adminKeyInput = document.getElementById("admin-key");
+			const logoutButton = document.getElementById("logout-button");
+			const bookingList = document.getElementById("booking-list");
+			const pageMessage = document.getElementById("page-message");
+			const historyList = document.getElementById("history-list");
+			const auditList = document.getElementById("audit-list");
+			const reportForm = document.getElementById("report-form");
+			const reportMessage = document.getElementById("report-message");
+			const reportPdfButton = document.getElementById("report-pdf-button");
+			const reportResults = document.getElementById("report-results");
+			const manualForm = document.getElementById("manual-booking-form");
+			const manualMessage = document.getElementById("manual-message");
+			const hoursForm = document.getElementById("hours-form");
+			const hoursTable = document.getElementById("hours-table");
+			const hoursMessage = document.getElementById("hours-message");
+			const settingsForm = document.getElementById("settings-form");
+			const settingsMessage = document.getElementById("settings-message");
+			const exceptionsForm = document.getElementById("exceptions-form");
+			const exceptionsList = document.getElementById("exceptions-list");
+			const exceptionsMessage = document.getElementById("exceptions-message");
+			const exceptionType = document.getElementById("exception-type");
+			const exceptionStart = document.getElementById("exception-start");
+			const exceptionEnd = document.getElementById("exception-end");
+
+			if (adminKey) {
+				showAdminView();
+				init();
+			} else {
+				showLoginView();
+			}
+
+			loginForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+
+				const enteredKey = adminKeyInput.value.trim();
+
+				if (!enteredKey) {
+					setMessage(loginMessage, "Virheellinen admin-avain.", "error");
+					return;
+				}
+
+				adminKey = enteredKey;
+				localStorage.setItem(adminKeyStorageKey, adminKey);
+				showAdminView();
+				await init();
+			});
+
+			logoutButton.addEventListener("click", () => {
+				adminKey = "";
+				localStorage.removeItem(adminKeyStorageKey);
+				clearAdminView();
+				showLoginView();
+			});
+
+			async function init() {
+				try {
+					setMessage(pageMessage, "Ladataan tietoja...", "info");
+					await Promise.all([loadBookings(), loadHistory(), loadAudit(), loadHours(), loadSettings(), loadExceptions()]);
+					setDefaultReportMonth();
+					setMessage(pageMessage, "", "");
+				} catch (error) {
+					if (error instanceof UnauthorizedAdminError) {
+						adminKey = "";
+						localStorage.removeItem(adminKeyStorageKey);
+						clearAdminView();
+						showLoginView("Virheellinen admin-avain.");
+						return;
+					}
+
+					setMessage(pageMessage, "Tietojen lataus epäonnistui.", "error");
+				}
+			}
+
+			function showLoginView(message = "") {
+				adminView.classList.add("hidden");
+				loginView.classList.remove("hidden");
+				setMessage(loginMessage, message, message ? "error" : "");
+				adminKeyInput.focus();
+			}
+
+			function showAdminView() {
+				loginView.classList.add("hidden");
+				adminView.classList.remove("hidden");
+				setMessage(loginMessage, "", "");
+			}
+
+			function clearAdminView() {
+				bookingList.innerHTML = "";
+				historyList.innerHTML = "";
+				auditList.innerHTML = "";
+				hoursTable.innerHTML = "";
+				exceptionsList.innerHTML = "";
+				reportResults.innerHTML = "";
+				setMessage(pageMessage, "", "");
+				setMessage(reportMessage, "", "");
+				setMessage(manualMessage, "", "");
+				setMessage(hoursMessage, "", "");
+				setMessage(settingsMessage, "", "");
+				setMessage(exceptionsMessage, "", "");
+			}
+
+			reportForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				await loadReport();
+			});
+
+			reportPdfButton.addEventListener("click", async () => {
+				await downloadReportPdf();
+			});
+
+			manualForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				setMessage(manualMessage, "Tallennetaan varausta...", "info");
+
+				const payload = {
+					serviceId: Number(manualForm.serviceId.value),
+					date: manualForm.date.value,
+					time: manualForm.time.value,
+					name: manualForm.name.value.trim(),
+					email: manualForm.email.value.trim(),
+					address: manualForm.address.value.trim(),
+					notes: manualForm.notes.value.trim()
+				};
+
+				const response = await adminFetch("/api/admin/bookings/manual", {
+					method: "POST",
+					headers: adminHeaders(),
+					body: JSON.stringify(payload)
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(manualMessage, data?.error || "Tallennus epäonnistui.", "error");
+					return;
+				}
+
+				manualForm.reset();
+				setMessage(manualMessage, "Varaus tallennettu.", "success");
+				await loadBookings();
+			});
+
+			hoursForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				setMessage(hoursMessage, "Tallennetaan työaikoja...", "info");
+
+				const rows = [...hoursTable.querySelectorAll(".hours-row")].map((row) => ({
+					weekday: Number(row.dataset.weekday),
+					enabled: row.querySelector('[data-role="enabled"]').checked,
+					startTime: row.querySelector('[data-role="start"]').value,
+					endTime: row.querySelector('[data-role="end"]').value
+				}));
+
+				const response = await adminFetch("/api/admin/hours", {
+					method: "PUT",
+					headers: adminHeaders(),
+					body: JSON.stringify(rows)
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(hoursMessage, data?.error || "Tallennus epäonnistui.", "error");
+					return;
+				}
+
+				setMessage(hoursMessage, "Työajat tallennettu.", "success");
+				await loadHours();
+			});
+
+			settingsForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				setMessage(settingsMessage, "Tallennetaan asetuksia...", "info");
+
+				const payload = {
+					sameDayNoticeMinutes: Number(settingsForm.sameDayNoticeMinutes.value),
+					bufferMinutes: Number(settingsForm.bufferMinutes.value),
+					slotIntervalMinutes: Number(settingsForm.slotIntervalMinutes.value)
+				};
+
+				const response = await adminFetch("/api/admin/settings", {
+					method: "PUT",
+					headers: adminHeaders(),
+					body: JSON.stringify(payload)
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(settingsMessage, data?.error || "Tallennus epÃ¤onnistui.", "error");
+					return;
+				}
+
+				setMessage(settingsMessage, "Asetukset tallennettu.", "success");
+				await loadSettings();
+			});
+
+			exceptionType.addEventListener("change", syncExceptionTypeFields);
+
+			exceptionsForm.addEventListener("submit", async (event) => {
+				event.preventDefault();
+				setMessage(exceptionsMessage, "Tallennetaan poikkeusta...", "info");
+
+				const payload = {
+					date: exceptionsForm.exceptionDate.value,
+					type: exceptionType.value,
+					startTime: exceptionStart.value,
+					endTime: exceptionEnd.value
+				};
+
+				const response = await adminFetch("/api/admin/exceptions", {
+					method: "POST",
+					headers: adminHeaders(),
+					body: JSON.stringify(payload)
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(exceptionsMessage, data?.error || "Tallennus epäonnistui.", "error");
+					return;
+				}
+
+				exceptionsForm.reset();
+				syncExceptionTypeFields();
+				setMessage(exceptionsMessage, "Poikkeus tallennettu.", "success");
+				await loadExceptions();
+			});
+
+			async function loadBookings() {
+				const response = await adminFetch("/api/admin/bookings", {
+					headers: adminHeaders()
+				});
+				const bookings = await response.json();
+
+				bookingList.innerHTML = "";
+
+				if (!Array.isArray(bookings) || bookings.length === 0) {
+					bookingList.innerHTML = '<div class="booking-item">Ei tulevia varauksia.</div>';
+					return;
+				}
+
+				const groupedBookings = groupBookingsByDate(bookings);
+
+				for (const group of groupedBookings) {
+					const section = document.createElement("section");
+					section.className = "booking-day";
+					section.innerHTML = `<h3 class="booking-day-title">${formatDayHeading(group.date)}</h3>`;
+
+					for (const booking of group.bookings) {
+						const item = document.createElement("article");
+						item.className = "booking-item";
+						item.innerHTML = `
+							<div class="booking-head">
+								<div><strong>${booking.date} klo ${booking.time}</strong></div>
+								<div><strong>Tila:</strong> ${formatStatusLabel(booking.status)}</div>
+							</div>
+							<div class="booking-meta">
+								<div><strong>Palvelu:</strong> ${booking.durationMinutes} min</div>
+								<div><strong>Hinta:</strong> ${formatPrice(booking.priceCents)}</div>
+								<div><strong>Nimi:</strong> ${booking.name}</div>
+								<div><strong>Sähköposti:</strong> ${booking.email}</div>
+								<div><strong>Osoite:</strong> ${booking.address}</div>
+								${booking.notes ? `<div><strong>Lisätiedot:</strong> ${booking.notes}</div>` : ""}
+							</div>
+							<div class="actions">
+								<button class="primary" type="button" data-action="complete" data-id="${booking.id}">
+									Merkitse toteutuneeksi
+								</button>
+								<button class="danger" type="button" data-action="cancel" data-id="${booking.id}">
+									Peruuta varaus
+								</button>
+							</div>
+						`;
+
+						item.querySelector('[data-action="complete"]').addEventListener("click", () =>
+							completeBooking(booking.id)
+						);
+						item.querySelector('[data-action="cancel"]').addEventListener("click", () => cancelBooking(booking.id));
+						section.appendChild(item);
+					}
+
+					bookingList.appendChild(section);
+				}
+			}
+
+			async function loadHistory() {
+				const response = await adminFetch("/api/admin/history", {
+					headers: adminHeaders()
+				});
+				const bookings = await response.json().catch(() => []);
+
+				historyList.innerHTML = "";
+
+				if (!Array.isArray(bookings) || bookings.length === 0) {
+					historyList.innerHTML = '<div class="booking-item">Ei historiatietoja.</div>';
+					return;
+				}
+
+				for (const booking of bookings) {
+					const item = document.createElement("article");
+					item.className = "booking-item";
+					item.innerHTML = `
+						<div class="booking-head">
+							<div><strong>${booking.date} klo ${booking.time}</strong></div>
+							<div><strong>Tila:</strong> ${formatStatusLabel(booking.status)}</div>
+						</div>
+						<div class="booking-meta">
+							<div><strong>Palvelu:</strong> ${booking.durationMinutes} min</div>
+							<div><strong>Hinta:</strong> ${formatPrice(booking.priceCents)}</div>
+							<div><strong>Nimi:</strong> ${booking.name}</div>
+							<div><strong>Sähköposti:</strong> ${booking.email}</div>
+							<div><strong>Osoite:</strong> ${booking.address}</div>
+							${booking.notes ? `<div><strong>Lisätiedot:</strong> ${booking.notes}</div>` : ""}
+						</div>
+						<div class="actions">
+							<button class="primary" type="button" data-action="restore" data-id="${booking.id}">
+								Palauta vahvistetuksi
+							</button>
+							<button class="danger" type="button" data-action="delete" data-id="${booking.id}">Poista pysyvästi</button>
+						</div>
+					`;
+
+					item.querySelector('[data-action="restore"]').addEventListener("click", () => restoreHistoryBooking(booking.id));
+					item.querySelector('[data-action="delete"]').addEventListener("click", () => deleteHistoryBooking(booking.id));
+					historyList.appendChild(item);
+				}
+			}
+
+			async function loadAudit() {
+				const response = await adminFetch("/api/admin/audit/unprocessed-past", {
+					headers: adminHeaders()
+				});
+				const bookings = await response.json().catch(() => []);
+
+				auditList.innerHTML = "";
+
+				if (!Array.isArray(bookings) || bookings.length === 0) {
+					auditList.innerHTML = '<div class="booking-item">Ei käsittelemättömiä menneitä varauksia.</div>';
+					return;
+				}
+
+				for (const booking of bookings) {
+					const item = document.createElement("article");
+					item.className = "booking-item";
+					item.innerHTML = `
+						<div class="booking-head">
+							<div><strong>${booking.date} klo ${booking.time}</strong></div>
+							<div><strong>Tila:</strong> ${formatStatusLabel(booking.status)}</div>
+						</div>
+						<div class="booking-meta">
+							<div><strong>Palvelu:</strong> ${booking.durationMinutes} min</div>
+							<div><strong>Hinta:</strong> ${formatPrice(booking.priceCents)}</div>
+							<div><strong>Nimi:</strong> ${booking.name}</div>
+							<div><strong>Sähköposti:</strong> ${booking.email}</div>
+							<div><strong>Osoite:</strong> ${booking.address}</div>
+							${booking.notes ? `<div><strong>Lisätiedot:</strong> ${booking.notes}</div>` : ""}
+						</div>
+						<div class="actions">
+							<button class="primary" type="button" data-action="complete" data-id="${booking.id}">
+								Merkitse toteutuneeksi
+							</button>
+							<button class="danger" type="button" data-action="cancel" data-id="${booking.id}">
+								Peru varaus
+							</button>
+						</div>
+					`;
+
+					item.querySelector('[data-action="complete"]').addEventListener("click", () =>
+						completeBooking(booking.id)
+					);
+					item.querySelector('[data-action="cancel"]').addEventListener("click", () => cancelBooking(booking.id));
+					auditList.appendChild(item);
+				}
+			}
+
+			async function loadReport() {
+				const month = reportForm.reportMonth.value;
+
+				if (!month) {
+					setMessage(reportMessage, "Valitse kuukausi.", "error");
+					return;
+				}
+
+				setMessage(reportMessage, "Ladataan raporttia...", "info");
+				reportResults.innerHTML = "";
+
+				const response = await adminFetch(`/api/admin/report?month=${encodeURIComponent(month)}`, {
+					headers: adminHeaders()
+				});
+				const report = await response.json().catch(() => null);
+
+				if (!response.ok || !report) {
+					setMessage(reportMessage, report?.error || "Raportin lataus epäonnistui.", "error");
+					return;
+				}
+
+				setMessage(reportMessage, "", "");
+				renderReport(report);
+			}
+
+			async function downloadReportPdf() {
+				const month = reportForm.reportMonth.value;
+
+				if (!month) {
+					setMessage(reportMessage, "Valitse kuukausi.", "error");
+					return;
+				}
+
+				setMessage(reportMessage, "Ladataan PDF-tiedostoa...", "info");
+
+				const response = await adminFetch(`/api/admin/report/pdf?month=${encodeURIComponent(month)}`, {
+					headers: adminHeaders()
+				});
+				const data = response.ok ? null : await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(reportMessage, data?.error || "PDF-tiedoston lataus epäonnistui.", "error");
+					return;
+				}
+
+				const blob = await response.blob();
+				const url = URL.createObjectURL(blob);
+				const link = document.createElement("a");
+				link.href = url;
+				link.download = `fiksiribu-kuukausiraportti-${month}.pdf`;
+				document.body.appendChild(link);
+				link.click();
+				link.remove();
+				URL.revokeObjectURL(url);
+				setMessage(reportMessage, "", "");
+			}
+
+			function renderReport(report) {
+				reportResults.innerHTML = `
+					<article class="booking-item">
+						<div class="booking-head">
+							<div><strong>Yhteensä</strong></div>
+							<div>${formatMonthLabel(report.month)}</div>
+						</div>
+						<div class="booking-meta">
+							<div><strong>Vahvistetut varaukset:</strong> ${report.totals.confirmedBookings}</div>
+							<div><strong>Toteutuneet käynnit:</strong> ${report.totals.completedBookings}</div>
+							<div><strong>Toteutunut liikevaihto:</strong> ${formatPrice(report.totals.revenueCents)}</div>
+						</div>
+					</article>
+				`;
+
+				const services = document.createElement("article");
+				services.className = "booking-item";
+				services.innerHTML = `
+					<div class="booking-head">
+						<div><strong>Palveluittain</strong></div>
+					</div>
+					<div class="booking-meta">
+						${
+							report.byService.length
+								? report.byService
+										.map(
+											(row) =>
+												`<div><strong>${row.durationMinutes} min</strong>&nbsp;&nbsp; vahvistetut ${row.confirmedCount} kpl&nbsp;&nbsp; toteutuneet ${row.completedCount} kpl&nbsp;&nbsp; ${formatPrice(row.revenueCents)}</div>`
+										)
+										.join("")
+								: "<div>Ei vahvistettuja tai toteutuneita varauksia valitulle kuukaudelle.</div>"
+						}
+					</div>
+				`;
+				reportResults.appendChild(services);
+			}
+
+			async function updateBookingStatus(id, status) {
+				const response = await adminFetch(`/api/admin/bookings/${id}`, {
+					method: "PATCH",
+					headers: adminHeaders(),
+					body: JSON.stringify({ status })
+				});
+
+				return response.ok;
+			}
+
+			async function cancelBooking(id) {
+				const ok = await updateBookingStatus(id, "cancelled");
+
+				if (!ok) {
+					setMessage(pageMessage, "Varauksen peruminen epäonnistui.", "error");
+					return;
+				}
+
+				setMessage(pageMessage, "Varaus peruttu.", "success");
+				await loadBookings();
+				await loadHistory();
+				await loadAudit();
+				if (reportForm.reportMonth.value) {
+					await loadReport();
+				}
+			}
+
+			async function completeBooking(id) {
+				const ok = await updateBookingStatus(id, "completed");
+
+				if (!ok) {
+					setMessage(pageMessage, "Varauksen merkitseminen toteutuneeksi epäonnistui.", "error");
+					return;
+				}
+
+				setMessage(pageMessage, "Varaus merkitty toteutuneeksi.", "success");
+				await loadBookings();
+				await loadHistory();
+				await loadAudit();
+				if (reportForm.reportMonth.value) {
+					await loadReport();
+				}
+			}
+
+			async function restoreHistoryBooking(id) {
+				const response = await adminFetch(`/api/admin/bookings/${id}/restore`, {
+					method: "POST",
+					headers: adminHeaders()
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(
+						pageMessage,
+						response.status === 409
+							? data?.error || "Varauksen aikaa ei voi enää palauttaa."
+							: data?.error || "Varauksen palauttaminen epäonnistui.",
+						"error"
+					);
+					return;
+				}
+
+				setMessage(pageMessage, "Varaus palautettu vahvistetuksi.", "success");
+				await loadBookings();
+				await loadHistory();
+				if (reportForm.reportMonth.value) {
+					await loadReport();
+				}
+			}
+
+			async function deleteHistoryBooking(id) {
+				if (!confirm("Poistetaanko varaus pysyvästi?")) {
+					return;
+				}
+
+				const response = await adminFetch(`/api/admin/bookings/${id}`, {
+					method: "DELETE",
+					headers: adminHeaders()
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(pageMessage, data?.error || "Varauksen poistaminen epäonnistui.", "error");
+					return;
+				}
+
+				setMessage(pageMessage, "Varaus poistettu pysyvästi.", "success");
+				await loadHistory();
+				if (reportForm.reportMonth.value) {
+					await loadReport();
+				}
+			}
+
+			async function loadHours() {
+				const response = await adminFetch("/api/admin/hours", {
+					headers: adminHeaders()
+				});
+				const hours = await response.json();
+
+				hoursTable.innerHTML = "";
+
+				for (const row of hours) {
+					const item = document.createElement("div");
+					item.className = "hours-row";
+					item.dataset.weekday = row.weekday;
+					item.innerHTML = `
+						<div>${row.label}</div>
+						<label class="inline-toggle">
+							<input data-role="enabled" type="checkbox" ${row.enabled ? "checked" : ""} />
+							<span>Käytössä</span>
+						</label>
+						<input data-role="start" type="time" value="${row.startTime}" />
+						<input data-role="end" type="time" value="${row.endTime}" />
+					`;
+					hoursTable.appendChild(item);
+				}
+			}
+
+			async function loadSettings() {
+				const response = await adminFetch("/api/admin/settings", {
+					headers: adminHeaders()
+				});
+				const settings = await response.json().catch(() => null);
+
+				if (!response.ok || !settings) {
+					throw new Error("Settings load failed");
+				}
+
+				settingsForm.sameDayNoticeMinutes.value = settings.sameDayNoticeMinutes ?? "";
+				settingsForm.bufferMinutes.value = settings.bufferMinutes ?? "";
+				settingsForm.slotIntervalMinutes.value = String(settings.slotIntervalMinutes ?? "15");
+			}
+
+			async function loadExceptions() {
+				const response = await adminFetch("/api/admin/exceptions", {
+					headers: adminHeaders()
+				});
+				const exceptions = await response.json().catch(() => []);
+
+				exceptionsList.innerHTML = "";
+
+				if (!Array.isArray(exceptions) || exceptions.length === 0) {
+					exceptionsList.innerHTML = '<div class="booking-item">Ei poikkeuksia tai estoja.</div>';
+					return;
+				}
+
+				for (const exception of exceptions) {
+					const item = document.createElement("article");
+					item.className = "booking-item";
+					item.innerHTML = `
+						<div class="booking-head">
+							<div><strong>${formatExceptionTitle(exception)}</strong></div>
+						</div>
+						<div class="booking-meta">
+							<div><strong>Päivä:</strong> ${formatIsoDate(exception.date)}</div>
+							${exception.type === "blocked_range" ? `<div><strong>Aika:</strong> ${exception.startTime} - ${exception.endTime}</div>` : ""}
+						</div>
+						<div class="actions">
+							<button class="danger" type="button" data-id="${exception.id}">Poista</button>
+						</div>
+					`;
+
+					item.querySelector("button").addEventListener("click", () => deleteException(exception.id));
+					exceptionsList.appendChild(item);
+				}
+			}
+
+			async function deleteException(id) {
+				const response = await adminFetch(`/api/admin/exceptions/${id}`, {
+					method: "DELETE",
+					headers: adminHeaders()
+				});
+				const data = await response.json().catch(() => null);
+
+				if (!response.ok) {
+					setMessage(exceptionsMessage, data?.error || "Poisto epäonnistui.", "error");
+					return;
+				}
+
+				setMessage(exceptionsMessage, "Poikkeus poistettu.", "success");
+				await loadExceptions();
+			}
+
+			class UnauthorizedAdminError extends Error {
+				constructor() {
+					super("Unauthorized admin key");
+				}
+			}
+
+			async function adminFetch(input, init = {}) {
+				const response = await fetch(input, init);
+
+				if (response.status === 401 || response.status === 403) {
+					throw new UnauthorizedAdminError();
+				}
+
+				return response;
+			}
+
+			function setMessage(element, text, type) {
+				element.textContent = text;
+				element.className = text ? `message ${type} visible` : "message";
+			}
+
+			function adminHeaders() {
+				return {
+					"content-type": "application/json",
+					"x-admin-key": adminKey
+				};
+			}
+
+			function setDefaultReportMonth() {
+				if (reportForm.reportMonth.value) {
+					return;
+				}
+
+				reportForm.reportMonth.value = new Date().toISOString().slice(0, 7);
+			}
+
+			function formatMonthLabel(monthValue) {
+				const [year, month] = monthValue.split("-").map(Number);
+
+				return new Intl.DateTimeFormat("fi-FI", {
+					month: "long",
+					year: "numeric"
+				}).format(new Date(year, month - 1, 1));
+			}
+
+			function groupBookingsByDate(bookings) {
+				const groups = new Map();
+
+				for (const booking of bookings) {
+					if (!groups.has(booking.date)) {
+						groups.set(booking.date, []);
+					}
+
+					groups.get(booking.date).push(booking);
+				}
+
+				return [...groups.entries()].map(([date, grouped]) => ({
+					date,
+					bookings: [...grouped].sort((a, b) => a.time.localeCompare(b.time))
+				}));
+			}
+
+			function formatDayHeading(dateText) {
+				const today = new Date();
+				const tomorrow = new Date();
+				tomorrow.setDate(today.getDate() + 1);
+
+				if (dateText === formatDateLabel(today)) {
+					return `Tänään ${dateText}`;
+				}
+
+				if (dateText === formatDateLabel(tomorrow)) {
+					return `Huomenna ${dateText}`;
+				}
+
+				return `${formatWeekdayName(dateText)} ${dateText}`;
+			}
+
+			function formatDateLabel(date) {
+				return new Intl.DateTimeFormat("fi-FI", {
+					day: "2-digit",
+					month: "2-digit",
+					year: "numeric"
+				}).format(date);
+			}
+
+			function formatWeekdayName(dateText) {
+				const [day, month, year] = dateText.split(".").map(Number);
+				const date = new Date(year, month - 1, day);
+				const weekday = new Intl.DateTimeFormat("fi-FI", {
+					weekday: "long"
+				}).format(date);
+
+				return weekday.charAt(0).toUpperCase() + weekday.slice(1);
+			}
+
+			function formatPrice(priceCents) {
+				const euros = Number(priceCents) / 100;
+
+				return new Intl.NumberFormat("fi-FI", {
+					style: "currency",
+					currency: "EUR",
+					minimumFractionDigits: Number.isInteger(euros) ? 0 : 2,
+					maximumFractionDigits: 2
+				}).format(euros);
+			}
+
+			function syncExceptionTypeFields() {
+				const isRange = exceptionType.value === "blocked_range";
+				exceptionStart.disabled = !isRange;
+				exceptionEnd.disabled = !isRange;
+				exceptionStart.required = isRange;
+				exceptionEnd.required = isRange;
+
+				if (!isRange) {
+					exceptionStart.value = "";
+					exceptionEnd.value = "";
+				}
+			}
+
+			function formatStatusLabel(status) {
+				if (status === "completed") {
+					return "Toteutunut";
+				}
+
+				if (status === "cancelled") {
+					return "Peruttu";
+				}
+
+				return "Vahvistettu";
+			}
+
+			function formatExceptionTitle(exception) {
+				if (exception.type === "closed_all_day") {
+					return "Suljettu koko päivä";
+				}
+
+				return "Estetty aikaväli";
+			}
+
+			function formatIsoDate(value) {
+				const [year, month, day] = value.split("-");
+				return `${day}.${month}.${year}`;
+			}
+		</script>
+	</body>
+</html>
