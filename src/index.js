@@ -1,3 +1,5 @@
+import { createClerkClient } from "@clerk/backend";
+
 export default {
 	async fetch(request, env) {
 		const url = new URL(request.url);
@@ -226,9 +228,11 @@ export default {
 				console.error("Booking notification failed", error);
 			}
 
+			const baseUrl = normalizeBaseUrl(env.PUBLIC_BASE_URL || url.origin);
+			let emailSent = false;
 			try {
-				await sendCustomerConfirmation(env, {
-					baseUrl: url.origin,
+				emailSent = await sendCustomerConfirmation(env, {
+					baseUrl,
 					manageToken: created.manageToken,
 					serviceId,
 					date,
@@ -239,13 +243,26 @@ export default {
 				});
 			} catch (error) {
 				console.error("Customer confirmation failed", error);
+				emailSent = false;
 			}
 
-			return Response.json({ ok: true, id: created.id });
+			return Response.json({ ok: true, id: created.id, emailSent });
+		}
+
+		if (url.pathname === "/api/admin/auth/config") {
+			if (request.method !== "GET") {
+				return json({ error: "Method not allowed" }, 405);
+			}
+
+			return Response.json({
+				clerkEnabled: isClerkConfigured(env),
+				publishableKey: env.CLERK_PUBLISHABLE_KEY ?? "",
+				adminKeyFallbackEnabled: Boolean(env.ADMIN_KEY)
+			});
 		}
 
 		if (url.pathname === "/api/admin/bookings") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -297,7 +314,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/report") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -317,7 +334,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/report/pdf") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -345,7 +362,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/history") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -393,7 +410,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/audit/unprocessed-past") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -445,7 +462,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/bookings/manual") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -505,7 +522,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/exceptions") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -694,7 +711,7 @@ export default {
 		}
 
 		if (url.pathname.startsWith("/api/admin/exceptions/")) {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -727,7 +744,7 @@ export default {
 		}
 
 		if (url.pathname.startsWith("/api/admin/bookings/") && url.pathname.endsWith("/restore")) {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -813,7 +830,7 @@ export default {
 		}
 
 		if (url.pathname.startsWith("/api/admin/bookings/")) {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -916,7 +933,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/hours") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -985,7 +1002,7 @@ export default {
 		}
 
 		if (url.pathname === "/api/admin/settings") {
-			const unauthorized = requireAdmin(request, env);
+			const unauthorized = await requireAdmin(request, env);
 
 			if (unauthorized) {
 				return unauthorized;
@@ -1057,13 +1074,164 @@ const WEEKDAY_LABELS = {
 	6: "Lauantai",
 	7: "Sunnuntai"
 };
+const EMAIL_BRAND = {
+	businessName: "DemoAjanvaraus",
+	senderFrom: "hello@tulkintatila.fi",
+	replyTo: "hello@tulkintatila.fi",
+	adminNotificationRecipient: "hello@tulkintatila.fi",
+	adminNotificationSubject: "Uusi varaus | DemoAjanvaraus",
+	customerConfirmationSubject: "Varausvahvistus | DemoAjanvaraus",
+	customerHeadline: "Varausvahvistus",
+	customerSubtitle: "DemoAjanvaraus",
+	customerIntro: "Kiitos varauksestasi. Alla varauksesi tiedot.",
+	customerManageHelpText: "Jos haluat siirtää tai perua varauksen, käytä alla olevaa linkkiä.",
+	customerDemoNote: "Tämä viesti on osa DemoAjanvaraus-esimerkkitoteutusta.",
+	contactHelpText: "Jos tarvitset lisätietoja, vastaa tähän viestiin.",
+	brandAccent: "#215e52",
+	brandAccentSecondary: "#3d8f7b",
+	brandAccentSoft: "#e7f2ef",
+	brandAccentLight: "#f1f6f4",
+	brandTextMuted: "#665d72"
+};
+Object.assign(EMAIL_BRAND, {
+	customerManageHelpText: "Jos haluat siirtää tai perua varauksen, käytä alla olevaa linkkiä.",
+	customerDemoNote: "Tämä viesti on osa DemoAjanvaraus-esimerkkitoteutusta.",
+	contactHelpText: "Jos tarvitset lisätietoja, vastaa tähän viestiin."
+});
 
-function requireAdmin(request, env) {
-	if (request.headers.get("x-admin-key") !== env.ADMIN_KEY) {
+async function requireAdmin(request, env) {
+	const auth = await getAdminAuth(request, env);
+
+	if (!auth.ok) {
 		return json({ error: "Unauthorized" }, 401);
 	}
 
 	return null;
+}
+
+async function getAdminAuth(request, env) {
+	const clerkAuth = await authenticateClerkAdminRequest(request, env);
+
+	if (clerkAuth.ok) {
+		return clerkAuth;
+	}
+
+	if (isValidAdminKeyRequest(request, env)) {
+		return {
+			ok: true,
+			mode: "admin_key"
+		};
+	}
+
+	return {
+		ok: false,
+		mode: clerkAuth.mode,
+		reason: clerkAuth.reason
+	};
+}
+
+async function authenticateClerkAdminRequest(request, env) {
+	if (!isClerkConfigured(env)) {
+		return {
+			ok: false,
+			mode: "clerk_unavailable",
+			reason: "Clerk is not configured"
+		};
+	}
+
+	try {
+		const clerkClient = createClerkClient({
+			publishableKey: env.CLERK_PUBLISHABLE_KEY,
+			...(env.CLERK_SECRET_KEY ? { secretKey: env.CLERK_SECRET_KEY } : {})
+		});
+		const requestState = await clerkClient.authenticateRequest(request, {
+			acceptsToken: "session_token",
+			authorizedParties: getAuthorizedParties(request, env),
+			jwtKey: env.CLERK_JWT_KEY
+		});
+
+		if (!requestState.isAuthenticated) {
+			return {
+				ok: false,
+				mode: "clerk",
+				reason: requestState.reason ?? "Request is not authenticated"
+			};
+		}
+
+		const auth = requestState.toAuth();
+
+		if (!auth?.userId) {
+			return {
+				ok: false,
+				mode: "clerk",
+				reason: "Authenticated session did not include a user"
+			};
+		}
+
+		return {
+			ok: true,
+			mode: "clerk",
+			userId: auth.userId,
+			sessionId: auth.sessionId ?? null
+		};
+	} catch (error) {
+		console.error("Clerk admin authentication failed", error);
+
+		return {
+			ok: false,
+			mode: "clerk_error",
+			reason: "Clerk authentication failed"
+		};
+	}
+}
+
+function isClerkConfigured(env) {
+	return Boolean(env.CLERK_PUBLISHABLE_KEY && (env.CLERK_JWT_KEY || env.CLERK_SECRET_KEY));
+}
+
+function isValidAdminKeyRequest(request, env) {
+	if (!env.ADMIN_KEY) {
+		return false;
+	}
+
+	return request.headers.get("x-admin-key") === env.ADMIN_KEY;
+}
+
+function getAuthorizedParties(request, env) {
+	const parties = new Set();
+	const configuredParties = String(env.CLERK_AUTHORIZED_PARTIES ?? "")
+		.split(",")
+		.map((value) => value.trim())
+		.filter(Boolean);
+
+	for (const party of configuredParties) {
+		parties.add(party);
+	}
+
+	const requestOrigin = getRequestOrigin(request);
+
+	if (requestOrigin) {
+		parties.add(requestOrigin);
+	}
+
+	for (const localhostOrigin of [
+		"http://localhost:8787",
+		"http://127.0.0.1:8787",
+		"http://localhost:3000",
+		"http://127.0.0.1:3000"
+	]) {
+		parties.add(localhostOrigin);
+	}
+
+	return [...parties];
+}
+
+function getRequestOrigin(request) {
+	try {
+		return new URL(request.url).origin;
+	} catch {
+		return null;
+	}
 }
 
 function json(body, status) {
@@ -1659,7 +1827,11 @@ function escapeHtml(value) {
 		.replaceAll("'", "&#39;");
 }
 
-async function sendBookingNotification(env, booking) {
+function normalizeBaseUrl(value) {
+	return String(value).replace(/\/+$/, "");
+}
+
+async function sendBookingNotificationLegacy(env, booking) {
 	if (!env.RESEND_API_KEY) {
 		console.error("RESEND_API_KEY is not configured");
 		return;
@@ -1708,7 +1880,7 @@ async function sendBookingNotification(env, booking) {
 	}
 }
 
-async function sendCustomerConfirmation(env, booking) {
+async function sendCustomerConfirmationLegacy(env, booking) {
 	if (!env.RESEND_API_KEY) {
 		console.error("RESEND_API_KEY is not configured");
 		return;
@@ -1799,6 +1971,146 @@ async function sendCustomerConfirmation(env, booking) {
 		const errorText = await response.text();
 		throw new Error(`Resend API error ${response.status}: ${errorText}`);
 	}
+}
+
+async function sendBookingNotification(env, booking) {
+	if (!env.RESEND_API_KEY) {
+		console.error("RESEND_API_KEY is not configured");
+		return;
+	}
+
+	const service = await env.DB.prepare(
+		`
+			SELECT duration_minutes
+			FROM services
+			WHERE id = ?
+			LIMIT 1
+		`
+	)
+		.bind(booking.serviceId)
+		.first();
+
+	const serviceText = service ? `${Number(service.duration_minutes)} min` : `ID ${booking.serviceId}`;
+	const bookingDateTime = `${formatFinnishDateFromIsoDate(booking.date)} klo ${booking.time}`;
+	const lines = [
+		EMAIL_BRAND.adminNotificationSubject,
+		"",
+		`Ajankohta: ${bookingDateTime}`,
+		`Palvelu: ${serviceText}`,
+		`Nimi: ${booking.name}`,
+		`Sähköposti: ${booking.email}`,
+		`Osoite: ${booking.address}`,
+		`Lisätiedot: ${booking.notes ?? "-"}`
+	];
+
+	const response = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${env.RESEND_API_KEY}`,
+			"content-type": "application/json"
+		},
+		body: JSON.stringify({
+			from: EMAIL_BRAND.senderFrom,
+			to: [EMAIL_BRAND.adminNotificationRecipient],
+			reply_to: EMAIL_BRAND.replyTo,
+			subject: EMAIL_BRAND.adminNotificationSubject,
+			text: lines.join("\n")
+		})
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`Resend API error ${response.status}: ${errorText}`);
+	}
+}
+
+async function sendCustomerConfirmation(env, booking) {
+	if (!env.RESEND_API_KEY) {
+		console.error("RESEND_API_KEY is not configured");
+		return false;
+	}
+
+	const service = await env.DB.prepare(
+		`
+			SELECT duration_minutes
+			FROM services
+			WHERE id = ?
+			LIMIT 1
+		`
+	)
+		.bind(booking.serviceId)
+		.first();
+
+	const serviceText = service ? `${Number(service.duration_minutes)} min` : `ID ${booking.serviceId}`;
+	const manageUrl = `${booking.baseUrl}/manage.html?token=${encodeURIComponent(booking.manageToken)}`;
+	const bookingDateTime = `${formatFinnishDateFromIsoDate(booking.date)} klo ${booking.time}`;
+	const textLines = [
+		`Hei ${booking.name},`,
+		"",
+		EMAIL_BRAND.customerIntro,
+		"",
+		"Varauksen tiedot:",
+		`Ajankohta: ${bookingDateTime}`,
+		`Palvelu: ${serviceText}`,
+		`Osoite: ${booking.address}`,
+		"",
+		EMAIL_BRAND.customerManageHelpText,
+		`Hallintalinkki: ${manageUrl}`,
+		"",
+		EMAIL_BRAND.contactHelpText,
+		EMAIL_BRAND.replyTo,
+		"",
+		EMAIL_BRAND.customerDemoNote
+	];
+	const html = `
+		<div style="background:#17211f;padding:32px 16px;font-family:Segoe UI,Arial,sans-serif;color:#1d2926;">
+			<div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:24px;overflow:hidden;border:1px solid #dbe8e3;">
+				<div style="padding:32px;background:linear-gradient(135deg,${EMAIL_BRAND.brandAccent} 0%,${EMAIL_BRAND.brandAccentSecondary} 100%);color:#ffffff;">
+					<div style="font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;opacity:0.9;">${escapeHtml(EMAIL_BRAND.businessName)}</div>
+					<h1 style="margin:12px 0 6px;font-size:28px;line-height:1.05;">${escapeHtml(EMAIL_BRAND.customerHeadline)}</h1>
+					<div style="font-size:16px;opacity:0.95;">${escapeHtml(EMAIL_BRAND.customerSubtitle)}</div>
+				</div>
+				<div style="padding:28px 28px 32px;">
+					<p style="margin:0 0 16px;">Hei ${escapeHtml(booking.name)},</p>
+					<p style="margin:0 0 20px;">${escapeHtml(EMAIL_BRAND.customerIntro)}</p>
+					<div style="background:${EMAIL_BRAND.brandAccentLight};border:1px solid ${EMAIL_BRAND.brandAccentSoft};border-radius:18px;padding:18px 20px;margin-bottom:22px;">
+						<div style="margin:0 0 8px;"><strong>Ajankohta:</strong> ${escapeHtml(bookingDateTime)}</div>
+						<div style="margin:0 0 8px;"><strong>Palvelu:</strong> ${escapeHtml(serviceText)}</div>
+						<div style="margin:0;"><strong>Osoite:</strong> ${escapeHtml(booking.address)}</div>
+					</div>
+					<p style="margin:0 0 18px;color:${EMAIL_BRAND.brandTextMuted};">${escapeHtml(EMAIL_BRAND.customerManageHelpText)}</p>
+					<div style="margin:0 0 24px;">
+						<a href="${escapeHtml(manageUrl)}" style="display:inline-block;padding:14px 20px;border-radius:999px;background:${EMAIL_BRAND.brandAccent};color:#ffffff;text-decoration:none;font-weight:700;">Hallitse varausta</a>
+					</div>
+					<p style="margin:0 0 10px;color:${EMAIL_BRAND.brandTextMuted};">${escapeHtml(EMAIL_BRAND.contactHelpText)}<br>${escapeHtml(EMAIL_BRAND.replyTo)}</p>
+					<p style="margin:0;color:${EMAIL_BRAND.brandTextMuted};font-size:14px;">${escapeHtml(EMAIL_BRAND.customerDemoNote)}</p>
+				</div>
+			</div>
+		</div>
+	`.trim();
+
+	const response = await fetch("https://api.resend.com/emails", {
+		method: "POST",
+		headers: {
+			authorization: `Bearer ${env.RESEND_API_KEY}`,
+			"content-type": "application/json"
+		},
+		body: JSON.stringify({
+			from: EMAIL_BRAND.senderFrom,
+			to: [booking.email],
+			reply_to: EMAIL_BRAND.replyTo,
+			subject: EMAIL_BRAND.customerConfirmationSubject,
+			text: textLines.join("\n"),
+			html
+		})
+	});
+
+	if (!response.ok) {
+		const errorText = await response.text();
+		throw new Error(`Resend API error ${response.status}: ${errorText}`);
+	}
+
+	return true;
 }
 
 async function cancelRescheduledBooking(env, manageToken, newBookingId) {

@@ -4,7 +4,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "fiksiribuajanvaraus",
+	"name": "demoajanvaraus",
 	"main": "src/index.js",
 	"compatibility_date": "2026-04-13",
 	"assets": {
@@ -15,19 +15,16 @@
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "fiksiribuajanvaraus-db",
-			"database_id": "a3f4568d-7dcf-4b1a-a6b1-2e6444b399c6"
+			"database_name": "demoajanvaraus-db",
+			"database_id": "58ba4ce6-a4b3-4e3d-a91d-6e41125aa570"
 		}
 	],
 	"observability": {
 		"enabled": true
 	},
-	"routes": [
-		{
-			"pattern": "ajanvaraus.fiksiribu.fi",
-			"custom_domain": true
-		}
-	],
+	"vars": {
+		"PUBLIC_BASE_URL": "http://127.0.0.1:8787"
+	},
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
